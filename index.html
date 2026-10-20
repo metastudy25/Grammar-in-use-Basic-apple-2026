@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#1f5f4a">
-<title>이든 문법 정원 | Eden Grammar Garden</title>
+<title>이든 문법 정원 | Eden Grammar Basic</title>
 <style>
 :root{
   --bg:#f6f1e4; --paper:#fffdf7; --ink:#24332c; --ink2:#5d6b64; --line:#e4dccb;
@@ -209,6 +209,8 @@ table.gt{width:100%;border-collapse:separate;border-spacing:4px;table-layout:fix
 @keyframes flyU{to{transform:translateY(-120%);opacity:0}}
 
 
+.studytime{margin-top:6px;font-size:13px;color:var(--ink2)}
+.studytime b{color:var(--forest)}
 /* ===== 한글 해석 ===== */
 .kowrap{display:block}
 .kobtn{display:inline-flex;align-items:center;vertical-align:middle;margin-left:6px;padding:2px 8px;min-height:24px;border-radius:999px;border:1.5px solid #9fd6b3;background:#f0faf3;color:var(--forest);font-family:var(--font);font-size:12px;font-weight:800;line-height:1;cursor:pointer;white-space:nowrap}
@@ -8625,9 +8627,9 @@ async function call(params, post){
 }
 function newProgress(){
   return {v:1, xp:0, streak:0, lastDate:'', water:1, badges:[], units:{}, wrongBank:[], defeated:0, reviews:0,
-          maxCombo:0, boss:{}, tables:{}, mis:{date:'',unit:0,care:0,cards:0,bonus:false}, meta:{know:0,unsure:0,dunno:0,illusion:0}, totalSec:0, updated:0};
+          maxCombo:0, boss:{}, tables:{}, mis:{date:'',unit:0,care:0,cards:0,bonus:false}, meta:{know:0,unsure:0,dunno:0,illusion:0}, totalSec:0, time:{days:{},units:{}}, updated:0};
 }
-function fixProgress(p){ const b=newProgress(); p=Object.assign(b,p||{}); p.meta=Object.assign(newProgress().meta,p.meta||{}); p.mis=Object.assign(newProgress().mis,p.mis||{}); return p; }
+function fixProgress(p){ const b=newProgress(); p=Object.assign(b,p||{}); p.meta=Object.assign(newProgress().meta,p.meta||{}); p.mis=Object.assign(newProgress().mis,p.mis||{}); p.time=Object.assign({days:{},units:{}},p.time||{}); p.time.days=p.time.days||{}; p.time.units=p.time.units||{}; return p; }
 function key(k){ return 'eg_'+k+'_'+(ME?ME.name:''); }
 function persist(log){
   G.updated=Date.now(); G.level=levelIdx(G.xp)+1;
@@ -8712,7 +8714,7 @@ function screenLogin(msg){
     <div class="center"><span class="brandchip big">🌱 ${ACADEMY}</span></div>
     <div class="logo-pot mt8">🪴</div>
     <div class="logo"><small>EDEN GRAMMAR GARDEN</small>이든 문법 정원</div>
-    <p class="center muted mt8">Eden Grammar Garden Basic · 113개 Unit을 정원처럼 키워요</p>
+    <p class="center muted mt8">Eden Grammar Basic · 113개 Unit을 정원처럼 키워요</p>
     <div class="card mt16">
       ${url?'':`<div class="notice">🔌 아직 구글시트가 연결되지 않았어요.<br><b>체험 모드</b>로 둘러볼 수 있고, 기록은 이 기기에만 저장돼요.</div>`}
       <label class="field"><span>이름</span><input id="lname" autocomplete="username" placeholder="이름을 정확하게"></label>
@@ -8760,7 +8762,7 @@ function brandFooter(){
     <div class="bf-name">🌱 ${ACADEMY} · 이든 문법 정원</div>
     <div>© ${new Date().getFullYear()} ${ACADEMY}. All rights reserved.</div>
     <div class="bf-note">이 앱의 내용·디자인·문제는 ${ACADEMY}의 자산이며, 무단 복제·배포를 금합니다. ${ACADEMY} 수강생 내부 학습용입니다.<br>
-    예문 출처: 『Eden Basic Grammar in Use』 (Cambridge University Press) — 학습 목적으로 재구성</div>
+    예문 출처: 『Basic Grammar in Use』 (Cambridge University Press) — 학습 목적으로 재구성</div>
   </footer>`;
 }
 /* 로그아웃: 아직 못 보낸 기록이 있으면 먼저 저장을 시도한 뒤 나가요 */
@@ -8769,13 +8771,14 @@ async function logout(){
   const pending=QUEUE.length && !ME.demo;
   if(!confirm(pending?'로그아웃할까요?\n아직 구글시트로 보내지 못한 기록이 있어 먼저 저장할게요.':'로그아웃할까요?')) return;
   window.speechSynthesis&&speechSynthesis.cancel();
-  if(pending){ toast('⏳ 기록을 저장하는 중…'); try{ await syncNow(); }catch(e){} }
+  saveExit('로그아웃');
+  if(QUEUE.length && !ME.demo){ toast('⏳ 기록을 저장하는 중…'); try{ await syncNow(); }catch(e){} }
   if(QUEUE.length && !ME.demo && !confirm('인터넷 연결이 불안정해 일부 기록을 아직 못 보냈어요.\n기록은 이 기기에 남아 있다가 다음에 로그인하면 자동으로 보내져요.\n그래도 로그아웃할까요?')) return;
   const who=ME.name;
   finishLogout(); toast(`👋 ${who}님, 로그아웃했어요. 오늘도 수고했어요!`);
 }
 function finishLogout(msg){
-  hideIdleWarn(); closeModal(); RUN=null; ME=null; G=null; QUEUE=[];
+  saveExit('로그아웃'); hideIdleWarn(); closeModal(); RUN=null; ME=null; G=null; QUEUE=[];
   if(!IDLE.remember) lsSet('eg_last','');      // 공용 기기: 다음 학생에게 이름이 보이지 않게
   screenLogin(msg);
 }
@@ -8800,6 +8803,7 @@ function hideIdleWarn(){ const w=$('#idlewarn'); if(w) w.classList.remove('on');
 async function logoutNow(reason){
   if(!ME) return;
   window.speechSynthesis&&speechSynthesis.cancel();
+  saveExit(reason?'자동 로그아웃':'로그아웃');
   if(QUEUE.length && !ME.demo){ try{ await syncNow(); }catch(e){} }   // 못 보낸 기록은 기기에 남아 다음 로그인 때 전송
   finishLogout(reason||'');
 }
@@ -8837,6 +8841,7 @@ function topBar(){
           <span class="row" style="gap:12px"><span class="stat">🔥 ${G.streak}일</span><span class="stat">💧 ${G.water}</span><span class="stat">⭐ ${Object.values(G.units).reduce((s,u)=>s+(u.stars||0),0)}</span></span>
           <span class="muted">${G.xp}${N?' / '+N.xp:''} XP</span>
         </div>
+        <div class="studytime">⏱️ 오늘 공부 <b>${fmtDur(todaySec())}</b> · 누적 <b>${fmtDur(G.totalSec)}</b></div>
       </div>
     </div>
     <div class="row mt8" style="gap:6px;justify-content:flex-end">
@@ -8849,7 +8854,7 @@ function topBar(){
   </div>`;
 }
 function screenHome(){
-  RUN=null; ensureMissions();
+  saveExit('홈'); RUN=null; ensureMissions();
   const due=dueUnits(), mons=G.wrongBank.length;
   const P=PARTS[PART_TAB-1];
   const ms=missionList();
@@ -8861,7 +8866,7 @@ function screenHome(){
     if(!has){ cls+=' soon'; pot='☁️'; st='<span class="muted">준비 중</span>'; }
     else if(due1){ cls+=' wilt'; pot='🥀'; st='<span class="pill" style="background:#fbe0c4;color:#9a5a17">복습할 때예요!</span>'; }
     else if(u&&u.stars>0){ pot=['','🌱','🌷','🌸'][u.stars]; st=`<span class="stars">${'⭐'.repeat(u.stars)}${'☆'.repeat(3-u.stars)}</span>`; }
-    else if((G.resume||{})[n]){ cls+=' ready'; st=`<span class="pill" style="background:var(--sun2);color:#7a5200">▶ 이어서 하기 · ${STAGE_NAMES[G.resume[n].stage]}</span>`; }
+    else if((G.resume||{})[n]){ cls+=' ready'; st=`<span class="pill" style="background:var(--sun2);color:#7a5200">▶ 이어서 하기 · ${resumeLabel(n,G.resume[n])}</span>`; }
     else if(n===rec){ cls+=' ready'; st='<span class="pill">⭐ 추천 · 시작하기 ▶</span>'; }
     else if(open){ st='<span class="pill" style="background:#f3eee2;color:var(--ink2)">학습하기 ▶</span>'; }
     else { cls+=' locked'; pot='🔒'; st='<span class="muted">앞 Unit을 끝내면 열려요</span>'; }
@@ -8900,8 +8905,10 @@ function openUnit(n){
     </div>
     ${u&&u.stars>0?`<p class="mt8">최고 기록 ${'⭐'.repeat(u.stars)} · ${u.best}%</p>`:''}
     ${isDue(n)?`<button class="btn sun block mt12" onclick="closeModal();startReview(${n})">🥀 복습하기 (5분)</button>`:''}
-    ${(G.resume||{})[n]?`<button class="btn sun block mt12" onclick="closeModal();resumeUnit(${n})">▶ 이어서 하기 <span style="font-size:15px;opacity:.85">· ${STAGE_NAMES[G.resume[n].stage]}부터</span></button>`:''}
-    <button class="btn ${(G.resume||{})[n]?'ghostb':''} block mt12" onclick="closeModal();startUnit(${n})">${(G.resume||{})[n]?'처음부터 하기':u&&u.stars>0?'다시 도전하기':'학습 시작!'}</button>
+    ${unitSec(n)?`<p class="muted" style="margin:6px 0 0">⏱️ 이 Unit을 공부한 시간 <b>${fmtDur(unitSec(n))}</b></p>`:''}
+    ${(G.resume||{})[n]?`<button class="btn sun block mt12" onclick="closeModal();resumeUnit(${n})">▶ 이어서 하기<span style="display:block;font-size:14px;opacity:.85;margin-top:2px">${resumeLabel(n,G.resume[n])}부터</span></button>
+    <p class="muted" style="margin:4px 0 0;font-size:13px">💾 ${(d=>`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`)(new Date(G.resume[n].at||Date.now()))}에 저장됨${G.resume[n].sec?` · 그때까지 ${fmtDur(G.resume[n].sec)} 공부`:''}</p>`:''}
+    <button class="btn ${(G.resume||{})[n]?'ghostb':''} block mt12" onclick="restartUnit(${n})">${(G.resume||{})[n]?'처음부터 하기':u&&u.stars>0?'다시 도전하기':'학습 시작!'}</button>
     <div class="pickbox">
       <div class="pkt">🎯 골라서 다시 학습하기 <span class="muted">(별·진도에는 영향 없음)</span></div>
       <div class="chips">${PRACTICE_STAGES.filter(st=>st.has(U)).map(st=>`<button class="chip" onclick="closeModal();startPractice(${n},'${st.k}')">${st.e} ${st.n}</button>`).join('')}</div>
@@ -8942,7 +8949,72 @@ function startPractice(n, kind, tag){
    11. 학습 진행 엔진
    ================================================================= */
 let RUN=null;
-function newRun(kind, n){ return {kind, n, t0:Date.now(), xp:0, combo:0, maxCombo:0, ratings:{}, rc:{know:0,unsure:0,dunno:0}, results:[]}; }
+function newRun(kind, n){ ACT.last=Date.now(); return {kind, n, t0:Date.now(), xp:0, combo:0, maxCombo:0, ratings:{}, rc:{know:0,unsure:0,dunno:0}, results:[], ms:0, msLogged:0, xpLogged:0, prevSec:0}; }
+
+/* ---------- 학습시간 (실제로 조작한 시간만 셈: 1분 넘게 아무것도 안 누르면 그 시간은 빼요) ---------- */
+const ACT_CAP=60000, ACT={last:Date.now()};
+function actPing(){ const now=Date.now(); if(RUN && !RUN.finished) RUN.ms=(RUN.ms||0)+Math.min(Math.max(0,now-ACT.last),ACT_CAP); ACT.last=now; }
+['pointerdown','keydown','wheel','touchstart'].forEach(ev=>window.addEventListener(ev,actPing,{passive:true,capture:true}));
+function addStudyTime(sec, n, kind){
+  if(!G || !(sec>0)) return;
+  G.totalSec=(G.totalSec||0)+sec;
+  G.time=G.time||{days:{},units:{}}; const t=today();
+  G.time.days[t]=(G.time.days[t]||0)+sec;
+  const ks=Object.keys(G.time.days).sort(); while(ks.length>60) delete G.time.days[ks.shift()];
+  if(kind!=='boss' && kind!=='monster' && UNITS[n]) G.time.units[n]=(G.time.units[n]||0)+sec;
+}
+/* 아직 기록하지 않은 시간을 누적하고, 그 시간(초)을 돌려줌 */
+function flushTime(){ if(!RUN) return 0; actPing(); const d=Math.round(((RUN.ms||0)-(RUN.msLogged||0))/1000); RUN.msLogged=RUN.ms; addStudyTime(d, RUN.n, RUN.kind); return Math.max(0,d); }
+function fmtDur(sec){ sec=Math.round(sec||0); if(sec<60) return sec>0?'1분 미만':'0분'; const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60); return h?`${h}시간${m?' '+m+'분':''}`:`${m}분`; }
+function fmtClock(sec){ sec=Math.round(sec||0); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
+function todaySec(){ return ((G&&G.time&&G.time.days)||{})[today()]||0; }
+function unitSec(n){ return ((G&&G.time&&G.time.units)||{})[n]||0; }
+function runWhere(){
+  const k=RUN.kind, n=RUN.n;
+  return { part: k==='boss'?'Part '+n:(UNITS[n]?'Part '+partOf(n).n:''), unit: k==='monster'?'몬스터':k==='boss'?'보스전':(UNITS[n]?'Unit '+pad3(n):'') };
+}
+
+/* ---------- 중간 저장 · 이어서 하기 ---------- */
+function ckpt(data){ if(!RUN || RUN.kind!=='unit' || RUN.finished) return; RUN.stageData=data||null; saveResume(); }
+function saveResume(){
+  if(!RUN || RUN.kind!=='unit' || RUN.finished || !G) return;
+  const n=RUN.n, i=RUN.stageIdx; if(!(i>=1 && i<=4)) return;
+  actPing();
+  G.resume=G.resume||{};
+  G.resume[n]={stage:i, data:RUN.stageData||null, at:Date.now(),
+    results:RUN.results.map(r=>{ const {ref,...rest}=r; return {...rest, ref:{u:ref.u,t:ref.t,i:ref.i}}; }),
+    ratings:RUN.ratings, rc:RUN.rc, xp:RUN.xp, xpLogged:RUN.xpLogged||0, maxCombo:RUN.maxCombo||0, tableLog:RUN.tableLog||[], marks:RUN.marks||[],
+    sec:(RUN.prevSec||0)+Math.round((RUN.ms||0)/1000)};
+  G.updated=Date.now(); lsSet(key('prog'), G);
+}
+function refItem(r){ const U=UNITS[r.u]; const d=U&&U[r.t==='quiz'?'quiz':'snap'][r.i]; return d?{u:r.u,t:r.t,i:r.i,d}:null; }
+function resumeLabel(n, r){
+  if(!r) return '';
+  const nm=STAGE_NAMES[r.stage]||'', d=r.data, U=UNITS[n];
+  if(d && d.refs) return `${nm} ${Math.min(d.k+1,d.refs.length)}/${d.refs.length}번`;
+  if(d && d.queue && U) return `${nm} (${d.done||0}/${U.cards.length}장 완료)`;
+  return nm;
+}
+function progressLabel(){
+  const d=RUN&&RUN.stageData; if(!d) return '';
+  if(d.refs) return `${Math.min(d.k+1,d.refs.length)}/${d.refs.length}번`;
+  if(d.queue&&UNITS[RUN.n]) return `${d.done||0}/${UNITS[RUN.n].cards.length}장`;
+  return '';
+}
+/* 학습을 다 마치지 않고 나갈 때: 여기까지 저장 + 공부한 시간 기록 */
+function saveExit(where){
+  if(!RUN || RUN.finished || RUN.exited || !ME || !G) return;
+  RUN.exited=true;
+  const sec=flushTime();
+  const xp=Math.max(0,(RUN.xp||0)-(RUN.xpLogged||0)); RUN.xpLogged=RUN.xp||0;
+  let pos='';
+  if(RUN.kind==='unit'){ saveResume(); pos=progressLabel(); }
+  if(sec<5 && !xp){ persist(); return; }
+  const w=runWhere();
+  persist({time:new Date().toISOString(), part:w.part, unit:w.unit, stage:`⏸ 중간 저장 · ${curStageName()}${pos?' '+pos:''} (${where})`, score:'', stars:'', sec, xp, wrong:''});
+}
+window.addEventListener('pagehide', ()=>saveExit('창 닫음'));
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden'){ actPing(); saveResume(); } else ACT.last=Date.now(); });
 function stageBar(label, pct){
   return `<div class="stagebar"><div class="row">
     <button class="homebtn" onclick="quitRun()" title="홈으로 가기">🏠<small>홈</small></button>
@@ -8953,27 +9025,28 @@ function stageBar(label, pct){
     <div class="row" style="gap:8px"><div class="prog"><i style="width:${pct}%"></i></div><span class="combo" id="combo">${RUN.combo>=2?'🔥x'+RUN.combo:''}</span></div></div>
   </div></div>`;
 }
-function quitRun(){ if(confirm('홈으로 갈까요? 지금 풀던 내용은 저장되지 않아요.')){ window.speechSynthesis&&speechSynthesis.cancel(); screenHome(); } }
+function exitMsg(to){ return RUN&&RUN.kind==='unit'&&RUN.stageIdx>=1 ? `${to}으로 갈까요?\n지금까지 한 곳까지 저장돼요. 다음에 ‘이어서 하기’로 계속할 수 있어요.` : `${to}으로 갈까요?\n공부한 시간은 기록돼요.`; }
+function quitRun(){ if(confirm(exitMsg('홈'))){ window.speechSynthesis&&speechSynthesis.cancel(); saveExit('홈'); screenHome(); } }
 /* 단원 첫 화면(Unit 안내창)으로 돌아가기 */
 const STAGE_NAMES=['미리보기','개념카드','표 암기','스냅 퍼즐','타임어택 퀴즈'];
 function curStageName(){
   if(!RUN) return '';
   if(RUN.kind==='unit') return STAGE_NAMES[RUN.stageIdx]||'';
-  return {practice:'골라 학습·'+(RUN.label||''), review:'복습'}[RUN.kind]||RUN.kind;
+  return {practice:'골라 학습·'+(RUN.label||''), review:'복습', monster:'몬스터 배틀', boss:'보스전', table:'표 암기장'}[RUN.kind]||RUN.kind;
 }
 /* 이전·단원 버튼을 누른 기록을 구글시트 '학습기록' 탭에 남김 (단계 칸이 ◀ 또는 📖 로 시작) */
 function logNav(kind, from, to){
   try{
     const n=RUN&&RUN.n;
     persist({time:new Date().toISOString(), part:UNITS[n]?'Part '+partOf(n).n:'', unit:UNITS[n]?'Unit '+pad3(n):'',
-      stage: kind==='prev' ? '◀ 이전 버튼' : '📖 단원으로', score:'', stars:'', sec:Math.round((Date.now()-RUN.t0)/1000), xp:0,
+      stage: kind==='prev' ? '◀ 이전 버튼' : '📖 단원으로', score:'', stars:'', sec:0, xp:0,
       wrong: kind==='prev' ? `${from} → ${to}` : `${from}에서 나감`});
   }catch(e){}
 }
 function backToUnit(){
   const n=RUN&&RUN.n; if(!UNITS[n]) return quitRun();
-  if(!confirm('단원 첫 화면으로 갈까요? 지금 풀던 내용은 저장되지 않아요.')) return;
-  logNav('unit', curStageName());
+  if(!confirm(exitMsg('단원 첫 화면'))) return;
+  logNav('unit', curStageName()); saveExit('단원');
   window.speechSynthesis&&speechSynthesis.cancel(); closeModal&&closeModal(); screenHome(); openUnit(n);
 }
 /* 이전 단계로 돌아가기 (미리보기 → 개념카드 → 표 암기 → 스냅 퍼즐 → 퀴즈) */
@@ -9006,30 +9079,41 @@ function pickSnaps(n){
   return [...fills.slice(0,total-no).sort((a,b)=>a.i-b.i), ...orders.slice(0,no)];
 }
 function startUnit(n){
+  if(G.resume && G.resume[n]){ delete G.resume[n]; persist(); }   // 처음부터 하기: 저장된 진행은 지움
   RUN=newRun('unit', n); RUN.marks=[];
   runUnitStage(n, 0);
+}
+function restartUnit(n){
+  const r=(G.resume||{})[n];
+  if(r && !confirm(`처음부터 할까요?\n저장된 진행(${resumeLabel(n,r)})은 지워져요.`)) return;
+  closeModal(); startUnit(n);
 }
 /* 지난번 멈춘 단계부터 이어서 하기 */
 function resumeUnit(n){
   const r=(G.resume||{})[n]; if(!r) return startUnit(n);
-  RUN=newRun('unit', n); RUN.marks=[]; RUN.resumed=true;
-  toast(`▶ ${STAGE_NAMES[r.stage]}부터 이어서 해요`);
-  runUnitStage(n, r.stage);
+  RUN=newRun('unit', n); RUN.resumed=true;
+  RUN.marks=Array.isArray(r.marks)?r.marks:[];
+  RUN.results=(r.results||[]).map(x=>{ const it=refItem(x.ref||{}); return it?{...x, ref:it}:null; }).filter(Boolean);
+  RUN.ratings=r.ratings||{}; RUN.rc=Object.assign({know:0,unsure:0,dunno:0}, r.rc||{});
+  RUN.xp=r.xp||0; RUN.xpLogged=r.xpLogged!=null?r.xpLogged:RUN.xp; RUN.maxCombo=r.maxCombo||0;
+  RUN.tableLog=r.tableLog||[]; RUN.prevSec=r.sec||0;
+  toast(`▶ ${resumeLabel(n,r)}부터 이어서 해요`);
+  runUnitStage(n, r.stage, r.data||null);
 }
 /* Unit 학습의 각 단계를 순서대로 실행 (이전 단계로 돌아갈 수 있도록 단계 번호를 기억) */
-function runUnitStage(n, i){
+function runUnitStage(n, i, data){
   const U=UNITS[n];
   RUN.stageIdx=i;
-  RUN.marks[i]={res:RUN.results.length, ratings:JSON.stringify(RUN.ratings), rc:JSON.stringify(RUN.rc)};
-  // 이어서 하기: 개념카드 단계부터 '지금 어디까지 왔는지' 기억 (Unit을 끝내면 지움)
-  G.resume=G.resume||{};
-  if(i>=1 && i<=4 && !(i===2 && !(U.tables&&U.tables.length))){ G.resume[n]={stage:i, at:Date.now()}; persist(); }
+  if(!data || !RUN.marks[i]) RUN.marks[i]={res:RUN.results.length, ratings:JSON.stringify(RUN.ratings), rc:JSON.stringify(RUN.rc)};
+  // 이어서 하기: 개념카드 단계부터 '지금 어디까지 왔는지' 기억 (카드 한 장·문제 하나마다 갱신, Unit을 끝내면 지움)
+  if(i>=1 && i<=4 && !(i===2 && !(U.tables&&U.tables.length))){ RUN.stageData=data||null; saveResume(); if(!data) syncNow(); }
   const next=()=>runUnitStage(n, i+1);
+  const items=d=>(d&&d.refs)?d.refs.map(refItem).filter(Boolean):null;
   if(i===0) return stagePreview(U, next);
-  if(i===1) return stageCards(U.cards.map((c,k)=>({...c,i:k})), 'unit', next);
-  if(i===2) return stageTables(U, n, 'unit', next);
-  if(i===3) return runItems(pickSnaps(n), '🧲 스냅 퍼즐', false, next, {base:50, span:20});
-  if(i===4) return runItems(shuffle(U.quiz.map((d,k)=>({u:n,t:'quiz',i:k,d}))).slice(0,QUIZ_N), '⏱️ 타임어택 퀴즈', true, next);
+  if(i===1) return stageCards(U.cards.map((c,k)=>({...c,i:k})), 'unit', next, data);
+  if(i===2) return stageTables(U, n, 'unit', next, undefined, data&&data.s);
+  if(i===3) return runItems(items(data)||pickSnaps(n), '🧲 스냅 퍼즐', false, next, {base:50, span:20, startK:data&&data.k||0});
+  if(i===4) return runItems(items(data)||shuffle(U.quiz.map((d,k)=>({u:n,t:'quiz',i:k,d}))).slice(0,QUIZ_N), '⏱️ 타임어택 퀴즈', true, next, {startK:data&&data.k||0});
   finishUnit();
 }
 
@@ -9059,8 +9143,9 @@ function stagePreview(U, next){
 }
 
 /* ---------- ② 개념 플래시카드 (라이트너 분류) ---------- */
-function stageCards(cards, mode, next){
+function stageCards(cards, mode, next, st){
   let queue=cards.slice(), seen={}, done=0, cnt={0:0,1:0,2:0};
+  if(st && Array.isArray(st.queue)){ const byI={}; cards.forEach(c=>byI[c.i]=c); queue=st.queue.map(i=>byI[i]).filter(Boolean); seen=st.seen||{}; done=st.done||0; cnt=Object.assign(cnt, st.cnt||{}); }
   const total=cards.length;
   function draw(){
     if(!queue.length){ return next(); }
@@ -9106,6 +9191,7 @@ function stageCards(cards, mode, next){
       else if(seen[c.i]<3) queue.splice(Math.min(queue.length, r===0?2:4), 0, c);  // 모름은 금방, 애매는 조금 뒤에 다시
       else done++;
       r===2?SFX.good():SFX.tap();
+      ckpt({queue:queue.map(x=>x.i), seen, done, cnt});
       setTimeout(draw, 330);
     }
   }
@@ -9114,13 +9200,15 @@ function stageCards(cards, mode, next){
 
 /* ---------- ③④ 문제 진행기 (스냅 퍼즐 · 순서 맞추기 · 타임어택 퀴즈) ---------- */
 function runItems(items, label, timed, next, opts={}){
-  let k=0;
+  let k=Math.min(opts.startK||0, items.length);
+  const save=()=>ckpt({refs:items.map(x=>({u:x.u,t:x.t,i:x.i})), k});
+  save();
   function one(){
     if(k>=items.length) return next();
     const it=items[k]; window.__cur=it;
     const base = opts.base!=null?opts.base:(timed?70:40), span=opts.span!=null?opts.span:30;
     const head = stageBar(`${label} · ${k+1}/${items.length}`, base+k/items.length*span);
-    const done = res => { RUN.results.push({...res, ref:it}); k++; };
+    const done = res => { RUN.results.push({...res, ref:it}); k++; save(); };
     const goNext = () => one();
     if(it.t==='quiz') renderQuiz(it, head, timed, done, goNext);
     else if(it.d.type==='order') renderOrder(it, head, done, goNext);
@@ -9313,15 +9401,15 @@ function tableHTML(T, hidden){
 function tableKey(n,ti){ return n+'-'+ti; }
 
 // 표 암기 단계 실행: mode = unit | review | book,  only = 특정 표 번호(암기장)
-function stageTables(U, n, mode, next, only){
+function stageTables(U, n, mode, next, only, startS){
   const tables=(U.tables||[]).map((T,ti)=>({T,ti})).filter(x=>only==null||x.ti===only);
   if(!tables.length) return next();
   const steps=[];
   if(mode!=='review') steps.push({type:'look'});
   tables.forEach(({T,ti})=>((mode!=='review'&&T.fracs)||TABLE_FRACS[mode]).forEach((f,ri,arr)=>steps.push({type:'round', T, ti, f, timed:f===1, rn:ri+1, rt:arr.length})));
-  let s=0;
+  let s=Math.min(startS||0, steps.length);
   RUN.tableLog = RUN.tableLog || [];
-  const go=()=>{ if(s>=steps.length) return next(); const st=steps[s++]; const pct=(mode==='unit'?40:mode==='review'?20:0)+(s/steps.length)*(mode==='unit'?10:mode==='review'?25:100);
+  const go=()=>{ if(s>=steps.length) return next(); ckpt({s}); const st=steps[s++]; const pct=(mode==='unit'?40:mode==='review'?20:0)+(s/steps.length)*(mode==='unit'?10:mode==='review'?25:100);
     if(st.type==='look') tableLook(tables, pct, go); else tableRound(n, st, pct, go); };
   go();
 }
@@ -9440,7 +9528,7 @@ function startTableBook(n, ti){
 }
 function finishTable(n, ti){
   const T=UNITS[n].tables[ti], log=RUN.tableLog||[], miss=log.reduce((s,x)=>s+x.miss,0), r=G.tables[tableKey(n,ti)]||{};
-  const sec=Math.round((Date.now()-RUN.t0)/1000);
+  const sec=flushTime(); RUN.finished=true;
   ensureMissions(); G.mis.care++;
   touchStreak(); checkMissionsBonus(); checkBadges({});
   persist({time:new Date().toISOString(), part:'Part '+partOf(n).n, unit:'Unit '+pad3(n), stage:'표 암기', score:miss===0?100:Math.max(0,100-miss*10), stars:0,
@@ -9462,11 +9550,12 @@ function addMonsters(results){
 }
 function finishUnit(){
   const n=RUN.n, U=UNITS[n], R=RUN.results;
+  const sec=flushTime(); RUN.finished=true;
+  const allSec=(RUN.prevSec||0)+Math.round((RUN.ms||0)/1000);   // 이어서 한 경우 지난번 시간까지 합친 이번 판 학습 시간
   if(G.resume) delete G.resume[n];
-  const total=R.length, good=R.filter(r=>r.first).length;
+  const total=R.length||1, good=R.filter(r=>r.first).length;
   const score=Math.round(good/total*100);
   const stars= score>=90?3: score>=70?2: score>=50?1:0;
-  const sec=Math.round((Date.now()-RUN.t0)/1000);
   // 착각: '알아!'라고 한 개념카드의 주제를 문제에서 틀림
   const wrongTags=new Set(R.filter(r=>!r.first).map(r=>r.tag));
   const illusionCards=U.cards.filter((c,i)=>RUN.ratings[i]===2 && wrongTags.has(c.tag));
@@ -9481,10 +9570,10 @@ function finishUnit(){
   if(newly){ u.stage=0; u.next=addDays(today(),REVIEW_DAYS[0]); u.first=today(); }
   G.units[n]=u;
   if(stars>0){ addXP(30+stars*10); ensureMissions(); G.mis.unit++; }
-  G.totalSec=(G.totalSec||0)+sec;
   touchStreak(); checkMissionsBonus(); checkBadges({perfect});
+  const xpLog=RUN.xp-(RUN.xpLogged||0); RUN.xpLogged=RUN.xp;
   persist({time:new Date().toISOString(), part:'Part '+partOf(n).n, unit:'Unit '+pad3(n), stage:prev.plays?'다시하기':'첫 학습', score, stars,
-    know:RUN.rc.know, unsure:RUN.rc.unsure, dunno:RUN.rc.dunno, illusion:illusionTags.length, sec, xp:RUN.xp,
+    know:RUN.rc.know, unsure:RUN.rc.unsure, dunno:RUN.rc.dunno, illusion:illusionTags.length, sec, xp:xpLog,
     wrong:[...[...wrongTags].map(t=>`U${n}·${tagLabel(n,t)}`), ...(RUN.tableLog||[]).filter(x=>x.miss).map(x=>`U${n}·표:${x.title}`)].filter((v,i,a)=>a.indexOf(v)===i).join(' / ')});
   const tc=RUN.rc.know+RUN.rc.unsure+RUN.rc.dunno||1;
   $('#app').innerHTML = `
@@ -9494,7 +9583,7 @@ function finishUnit(){
     <div class="grid3 mt16">
       <div class="metric"><b>${score}%</b><span>첫 시도 정답률</span></div>
       <div class="metric"><b style="color:#c48a12">+${RUN.xp}</b><span>획득 XP</span></div>
-      <div class="metric"><b>${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}</b><span>학습 시간</span></div>
+      <div class="metric"><b>${fmtClock(allSec)}</b><span>학습 시간</span></div>
     </div>
     ${stars===0?`<div class="notice mt12">50% 이상이면 화분이 심어지고 다음 Unit이 열려요. 오답 몬스터를 물리치고 다시 도전해 봐요!</div>`:''}
     <div class="card mt12">
@@ -9547,7 +9636,7 @@ function openBoss(p){
 }
 function finishCare(kind){
   const R=RUN.results, total=R.length||1, good=R.filter(r=>r.first).length, score=R.length?Math.round(good/total*100):100;
-  const sec=Math.round((Date.now()-RUN.t0)/1000);
+  const sec=flushTime(); RUN.finished=true;
   let title='', body='', killed=0;
   ensureMissions();
   if(kind==='review'){
@@ -9578,11 +9667,12 @@ function finishCare(kind){
   }
   touchStreak(); checkMissionsBonus(); checkBadges({});
   persist({time:new Date().toISOString(), part:kind==='boss'?'Part '+RUN.n:(RUN.n?'Part '+partOf(RUN.n).n:''), unit:kind==='monster'?'몬스터':kind==='boss'?'보스전':'Unit '+pad3(RUN.n),
-    stage:{review:'복습',monster:'몬스터 배틀',boss:'보스전',practice:'골라 학습·'+(RUN.label||'')}[kind], score, stars:0, know:RUN.rc.know, unsure:RUN.rc.unsure, dunno:RUN.rc.dunno, illusion:0, sec, xp:RUN.xp,
+    stage:{review:'복습',monster:'몬스터 배틀',boss:'보스전',practice:'골라 학습·'+(RUN.label||'')}[kind], score, stars:0, know:RUN.rc.know, unsure:RUN.rc.unsure, dunno:RUN.rc.dunno, illusion:0, sec, xp:RUN.xp-(RUN.xpLogged||0),
     wrong:[...new Set(R.filter(r=>!r.first).map(r=>`U${r.ref.u}·${tagLabel(r.ref.u,r.tag)}`))].join(' / ')});
   $('#app').innerHTML=`<div class="center mt24"><div class="em" style="font-size:72px">${kind==='practice'?'🎯':kind==='review'?(score>=70?'🌸':'💧'):kind==='monster'?'⚔️':(score>=80?'🏆':'🐉')}</div>
     <h1 style="margin:6px 0">${title}</h1><p>${body}</p></div>
     <div class="grid3 mt16"><div class="metric"><b>${score}%</b><span>정답률</span></div><div class="metric"><b style="color:#c48a12">+${RUN.xp}</b><span>획득 XP</span></div><div class="metric"><b>${good}/${R.length}</b><span>맞힌 문제</span></div></div>
+    <p class="center muted mt8">⏱️ 학습 시간 ${fmtClock(sec)} · 오늘 ${fmtDur(todaySec())}</p>
     ${(kind==='practice'||kind==='review')&&UNITS[RUN.n]?`<div class="row mt24" style="gap:10px">
       <button class="btn sun grow" id="againbtn">🔁 다시 하기</button>
       <button class="btn ghostb grow" onclick="showAfter(()=>{screenHome();openUnit(${RUN.n});})">📖 단원 화면</button>
@@ -9654,8 +9744,8 @@ function screenAdminGate(){
   };
 }
 function renderDash(r){
-  const weak={}, isNav=l=>/^(◀|📖)/.test(String(l.stage||''));
-  r.logs.filter(l=>!isNav(l)).forEach(l=>String(l.wrong||'').split(' / ').filter(Boolean).forEach(w=>weak[w]=(weak[w]||0)+1));
+  const weak={}, isNav=l=>/^(◀|📖)/.test(String(l.stage||'')), isPause=l=>/^⏸/.test(String(l.stage||''));
+  r.logs.filter(l=>!isNav(l)&&!isPause(l)).forEach(l=>String(l.wrong||'').split(' / ').filter(Boolean).forEach(w=>weak[w]=(weak[w]||0)+1));
   const nav={}, navWho={};
   r.logs.filter(isNav).forEach(l=>{ const k=`${l.unit} · ${String(l.stage).startsWith('◀')?'◀ '+l.wrong:'📖 '+l.wrong}`; nav[k]=(nav[k]||0)+1; (navWho[k]=navWho[k]||new Set()).add(l.name); });
   const navList=Object.entries(nav).sort((a,b)=>b[1]-a[1]).slice(0,12);
@@ -9663,10 +9753,10 @@ function renderDash(r){
   const fmtD=v=>{ if(!v) return '-'; const d=new Date(v); return isNaN(d)?String(v):`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   $('#adash').innerHTML = idleSettingsCard() + `
   <div class="card mt12 adm"><h3 style="margin:0 0 8px">👥 학생별 현황 (${r.students.length}명)</h3>
-    <div class="tablewrap"><table><thead><tr><th>이름</th><th>학년</th><th>Lv</th><th>XP</th><th>🔥</th><th>최근</th><th>완료</th><th>⭐</th><th>👾</th><th>모름%</th><th>착각</th></tr></thead><tbody>
-    ${r.students.map(s=>{ const m=s.meta||{}; const t=(m.know||0)+(m.unsure||0)+(m.dunno||0); return `<tr><td><b>${esc(s.name)}</b>${s.status==='중지'?' <span class="muted">(중지)</span>':''}</td><td>${esc(s.grade)}</td><td>${s.level||1}</td><td>${s.xp||0}</td><td>${s.streak||0}</td><td>${esc(s.last||'-')}</td><td>${s.done||0}</td><td>${s.stars||0}</td><td>${s.monsters||0}</td><td>${t?Math.round(((m.dunno||0)+(m.unsure||0))/t*100):'-'}</td><td>${m.illusion||0}</td></tr>`; }).join('')}
+    <div class="tablewrap"><table><thead><tr><th>이름</th><th>학년</th><th>Lv</th><th>XP</th><th>🔥</th><th>최근</th><th>완료</th><th>⭐</th><th>👾</th><th>모름%</th><th>착각</th><th>오늘⏱️</th><th>누적⏱️</th></tr></thead><tbody>
+    ${r.students.map(s=>{ const m=s.meta||{}; const t=(m.know||0)+(m.unsure||0)+(m.dunno||0); return `<tr><td><b>${esc(s.name)}</b>${s.status==='중지'?' <span class="muted">(중지)</span>':''}</td><td>${esc(s.grade)}</td><td>${s.level||1}</td><td>${s.xp||0}</td><td>${s.streak||0}</td><td>${esc(s.last||'-')}</td><td>${s.done||0}</td><td>${s.stars||0}</td><td>${s.monsters||0}</td><td>${t?Math.round(((m.dunno||0)+(m.unsure||0))/t*100):'-'}</td><td>${m.illusion||0}</td><td>${s.time?fmtDur((s.time.days||{})[today()]||0):'-'}</td><td>${s.totalSec!=null?fmtDur(s.totalSec):'-'}</td></tr>`; }).join('')}
     </tbody></table></div>
-    <p class="muted mt8">모름% = 개념카드에서 모름·애매를 누른 비율 · 착각 = ‘알아!’라고 했지만 틀린 개념 수</p>
+    <p class="muted mt8">모름% = 개념카드에서 모름·애매를 누른 비율 · 착각 = ‘알아!’라고 했지만 틀린 개념 수 · ⏱️ = 실제로 조작한 학습시간 (Code.gs 새 버전 필요)</p>
   </div>
   <div class="card mt12"><h3 style="margin:0 0 8px">🎯 많이 틀린 문법 포인트 (최근 300건)</h3>
     ${weakList.length?weakList.map(([k,v])=>`<div class="weak"><span>${esc(k)}</span><b>${v}회</b></div>`).join(''):'<p class="muted">아직 기록이 없어요.</p>'}
